@@ -1,0 +1,27 @@
+@keyframes toast-slide-in {
+  0% { 
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  100% { 
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-slide-out {
+  0% { 
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% { 
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.emoji-fix {
+  display: inline-block;
+  transform: scale(1, 0.85);
+  line-height: 1;
+}
