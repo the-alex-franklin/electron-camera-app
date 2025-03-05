@@ -79,7 +79,7 @@ export function App() {
             autoPlay
             muted
             playsInline
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover -scale-x-100"
           />
 
           <div className="absolute bottom-0 left-0 right-0 flex justify-center p-4 bg-gradient-to-t from-black-70 to-transparent">
