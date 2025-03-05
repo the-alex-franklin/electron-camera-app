@@ -1,6 +1,7 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -60,6 +61,33 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+// Handle saving video recording
+ipcMain.handle('save-recording', async (_, buffer) => {
+  if (!win) return { success: false, error: 'Window not available' };
+
+  try {
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Save Recording',
+      defaultPath: `recording-${Date.now()}.webm`,
+      filters: [
+        { name: 'WebM files', extensions: ['webm'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      properties: ['createDirectory']
+    });
+
+    if (canceled || !filePath) {
+      return { success: false, canceled: true };
+    }
+
+    fs.writeFileSync(filePath, Buffer.from(buffer));
+    return { success: true, filePath };
+  } catch (error) {
+    console.error('Failed to save recording:', error);
+    return { success: false, error: String(error) };
   }
 });
 

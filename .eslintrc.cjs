@@ -10,10 +10,16 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh'],
   rules: {
+    // React rules
     'react-refresh/only-export-components': [
       'warn',
       { allowConstantExport: true },
     ],
+
+    'react-hooks/exhaustive-deps': 'off',
+
+    // typescript-specific rules
+    '@typescript-eslint/no-explicit-any': "off",
 
     // Syntax rules
     semi: ['warn', 'always'],
@@ -55,8 +61,5 @@ module.exports = {
       maxEOF: 0,
       maxBOF: 0,
     }],
-
-    // Console and debugging
-    'no-console': ['warn', { allow: ['info', 'warn', 'error'] }],
   },
 }
