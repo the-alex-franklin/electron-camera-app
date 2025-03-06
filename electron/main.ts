@@ -89,15 +89,15 @@ ipcMain.handle('save-recording', async (_, request: SaveRecordingRequest): Promi
       webm: 'webm',
       mp4: 'mp4',
       avi: 'avi',
-      mov: 'mov'
+      mov: 'mov',
     };
-    
+
     const extension = formatExtensions[request.format] || 'webm';
     const formatFilters: Record<VideoFormat, { name: string, extensions: string[] }> = {
       webm: { name: 'WebM files', extensions: ['webm'] },
       mp4: { name: 'MP4 files', extensions: ['mp4'] },
       avi: { name: 'AVI files', extensions: ['avi'] },
-      mov: { name: 'QuickTime files', extensions: ['mov'] }
+      mov: { name: 'QuickTime files', extensions: ['mov'] },
     };
 
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
@@ -105,9 +105,9 @@ ipcMain.handle('save-recording', async (_, request: SaveRecordingRequest): Promi
       defaultPath: `recording-${Date.now()}.${extension}`,
       filters: [
         formatFilters[request.format],
-        { name: 'All Files', extensions: ['*'] }
+        { name: 'All Files', extensions: ['*'] },
       ],
-      properties: ['createDirectory']
+      properties: ['createDirectory'],
     });
 
     if (canceled || !filePath) {

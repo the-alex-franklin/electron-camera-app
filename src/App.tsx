@@ -9,7 +9,7 @@ import { useCamera } from './hooks/useCamera';
 
 export function App() {
   const { toast, showToast } = useToast();
-  
+
   const {
     recording,
     showPlayback,
@@ -27,7 +27,7 @@ export function App() {
     discardRecording,
     saveRecording,
     handleFormatChange,
-    handleResolutionChange
+    handleResolutionChange,
   } = useCamera({ showToast });
 
   return (
@@ -38,7 +38,7 @@ export function App() {
         onFormatChange={handleFormatChange}
         onResolutionChange={handleResolutionChange}
       />
-      
+
       <div className={showPlayback ? 'hidden' : ''}>
         <CameraView
           videoRef={videoRef}

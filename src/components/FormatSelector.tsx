@@ -2,7 +2,7 @@ import { FC, useState } from 'react';
 
 export type VideoFormat = 'webm' | 'mp4' | 'avi' | 'mov';
 
-interface FormatSelectorProps {
+type FormatSelectorProps = {
   onSelect: (format: VideoFormat) => void;
   selectedFormat: VideoFormat;
 }

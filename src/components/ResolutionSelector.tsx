@@ -8,7 +8,7 @@ export type Resolution =
   | '720p'
   | '1080p'
 
-interface ResolutionSelectorProps {
+type ResolutionSelectorProps = {
   onSelect: (resolution: Resolution) => void;
   selectedResolution: Resolution;
 }
