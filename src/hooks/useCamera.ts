@@ -61,19 +61,19 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
 
   const stopAllMediaTracks = () => {
     if (!streamRef.current) return;
-    
+
     try {
       streamRef.current.getTracks().forEach(track => {
         if (track.readyState === 'live') {
           track.stop();
         }
       });
-      
+
       // Clean up video element references
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
-      
+
       streamRef.current = null;
     } catch (err) {
       console.error('Error stopping media tracks:', err);
@@ -131,7 +131,7 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
   const startCamera = async () => {
     // If camera is already active and we have a valid stream, return
     if (cameraActive && streamRef.current) return;
-    
+
     // Make sure to clean up any previous stream first
     stopAllMediaTracks();
 
@@ -152,11 +152,11 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
 
       // Create stable reference to video element for async operations
       const videoElement = videoRef.current;
-      
+
       // Wait for metadata to load before attempting to play
       const playVideo = async () => {
         if (!videoElement) return;
-        
+
         try {
           // Add event listener to handle loadedmetadata before playing
           const playPromise = new Promise((resolve, reject) => {
@@ -166,7 +166,7 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
                 .then(resolve)
                 .catch(reject);
             };
-            
+
             if (videoElement.readyState >= 3) { // HAVE_FUTURE_DATA or higher
               videoElement.play()
                 .then(resolve)
@@ -175,7 +175,7 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
               videoElement.addEventListener('canplay', handleCanPlay);
             }
           });
-          
+
           await playPromise;
         } catch (err) {
           console.error('Play failed:', err);
@@ -187,7 +187,7 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
           }, 1000);
         }
       };
-      
+
       // Delay play to ensure DOM is stable
       setTimeout(playVideo, 500);
 
