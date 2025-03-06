@@ -23,13 +23,31 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  const initCamera = async () => {
+    try {
+      await startCamera();
+    } catch (err) {
+      console.error('Camera initialization error:', err);
+      showToast('Failed to initialize camera', 'error');
+    }
+  };
+
   useEffect(() => {
-    startCamera();
-    return () => stopAllMediaTracks();
+    const timer = setTimeout(() => {
+      initCamera();
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      stopAllMediaTracks();
+    };
   }, []);
 
   useEffect(() => {
-    if (!cameraActive) startCamera();
+    if (!cameraActive && !showPlayback) {
+      // Small delay to avoid rapid camera reconnection attempts
+      setTimeout(() => startCamera(), 500);
+    }
   }, [cameraActive, showPlayback]);
 
   useEffect(() => {
@@ -112,7 +130,22 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
       });
 
       videoRef.current.srcObject = stream;
-      videoRef.current.play();
+
+      const playVideo = async () => {
+        try {
+          if (videoRef.current) {
+            await videoRef.current.play();
+          }
+        } catch (err) {
+          console.error('Play failed:', err);
+          setTimeout(() => {
+            videoRef.current?.play().catch(e => console.error('Final play attempt failed:', e));
+          }, 1000);
+        }
+      };
+
+      // Delay play to ensure DOM is ready
+      setTimeout(playVideo, 300);
 
       streamRef.current = stream;
       setCameraActive(true);
@@ -221,6 +254,10 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
     if (cameraActive) {
       stopAllMediaTracks();
       setCameraActive(false);
+
+      setTimeout(() => {
+        startCamera();
+      }, 500);
     }
   };
 

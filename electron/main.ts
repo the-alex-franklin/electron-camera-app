@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, systemPreferences } from 'electron';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -39,17 +39,44 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST;
 
+async function checkCameraPermission() {
+  if (process.platform !== 'darwin') return true;
+
+  try {
+    const status = systemPreferences.getMediaAccessStatus('camera');
+    console.log('Camera permission status:', status);
+
+    if (status !== 'granted') {
+      const granted = await systemPreferences.askForMediaAccess('camera');
+      console.log('Camera access granted:', granted);
+      return granted;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error checking camera permission:', error);
+    return false;
+  }
+}
+
 let win: BrowserWindow | null;
 
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    width: 1280,
+    height: 720,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
+      webSecurity: true,
+      contextIsolation: true,
     },
   });
 
-  // Test active push message to Renderer-process.
+  win.webContents.session.setPermissionCheckHandler((_webContents, permission) => {
+    return permission === 'media';
+  });
+
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString());
   });
@@ -57,8 +84,11 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'));
+  }
+
+  if (VITE_DEV_SERVER_URL) {
+    win.webContents.openDevTools();
   }
 }
 
@@ -122,4 +152,8 @@ ipcMain.handle('save-recording', async (_, request: SaveRecordingRequest): Promi
   }
 });
 
-app.whenReady().then(createWindow);
+// First check camera permission, then create window
+app.whenReady().then(async () => {
+  await checkCameraPermission();
+  createWindow();
+});
