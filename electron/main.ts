@@ -3,6 +3,22 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
 
+// Define types for video formats
+type VideoFormat = 'webm' | 'mp4' | 'avi' | 'mov';
+
+// Define interfaces for our IPC communication
+type SaveRecordingRequest = {
+  buffer: number[];
+  format: VideoFormat;
+}
+
+type SaveRecordingResponse = {
+  success: boolean;
+  filePath?: string;
+  canceled?: boolean;
+  error?: string;
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The built directory structure
@@ -64,16 +80,31 @@ app.on('activate', () => {
   }
 });
 
-// Handle saving video recording
-ipcMain.handle('save-recording', async (_, buffer) => {
+// Handle saving video recording with format selection
+ipcMain.handle('save-recording', async (_, request: SaveRecordingRequest): Promise<SaveRecordingResponse> => {
   if (!win) return { success: false, error: 'Window not available' };
 
   try {
+    const formatExtensions: Record<VideoFormat, string> = {
+      webm: 'webm',
+      mp4: 'mp4',
+      avi: 'avi',
+      mov: 'mov'
+    };
+    
+    const extension = formatExtensions[request.format] || 'webm';
+    const formatFilters: Record<VideoFormat, { name: string, extensions: string[] }> = {
+      webm: { name: 'WebM files', extensions: ['webm'] },
+      mp4: { name: 'MP4 files', extensions: ['mp4'] },
+      avi: { name: 'AVI files', extensions: ['avi'] },
+      mov: { name: 'QuickTime files', extensions: ['mov'] }
+    };
+
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
       title: 'Save Recording',
-      defaultPath: `recording-${Date.now()}.webm`,
+      defaultPath: `recording-${Date.now()}.${extension}`,
       filters: [
-        { name: 'WebM files', extensions: ['webm'] },
+        formatFilters[request.format],
         { name: 'All Files', extensions: ['*'] }
       ],
       properties: ['createDirectory']
@@ -83,7 +114,7 @@ ipcMain.handle('save-recording', async (_, buffer) => {
       return { success: false, canceled: true };
     }
 
-    fs.writeFileSync(filePath, Buffer.from(buffer));
+    fs.writeFileSync(filePath, Buffer.from(request.buffer));
     return { success: true, filePath };
   } catch (error) {
     console.error('Failed to save recording:', error);

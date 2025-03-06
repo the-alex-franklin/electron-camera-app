@@ -1,14 +1,17 @@
 import { FC, RefObject } from 'react';
 import { PlaybackControls } from './PlaybackControls';
+import { VideoFormat } from './FormatSelector';
 
 type VideoPlaybackProps = {
   videoUrl: string | null;
   playbackRef: RefObject<HTMLVideoElement>;
   isPlaying: boolean;
+  selectedFormat: VideoFormat;
   onVideoEnded: () => void;
   onTogglePlayback: () => void;
   onDiscardRecording: () => void;
   onSaveRecording: () => void;
+  onFormatChange: (format: VideoFormat) => void;
 };
 
 export const VideoPlayback: FC<VideoPlaybackProps> = ({

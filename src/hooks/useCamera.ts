@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ToastType } from '../components/Toast';
+import { VideoFormat } from '../components/FormatSelector';
+import { Resolution } from '../components/ResolutionSelector';
 
 type UseCameraProps = {
   showToast: (message: string, type: ToastType) => void;
@@ -12,6 +14,8 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<VideoFormat>('mp4');
+  const [selectedResolution, setSelectedResolution] = useState<Resolution>('1080p');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playbackRef = useRef<HTMLVideoElement | null>(null);
@@ -30,8 +34,10 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
 
   useEffect(() => {
     if (!videoBlob) return;
+
     const url = URL.createObjectURL(videoBlob);
     setVideoUrl(url);
+
     return () => URL.revokeObjectURL(url);
   }, [videoBlob]);
 
@@ -54,6 +60,42 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
     setIsPlaying(false);
   };
 
+  const getResolutionConstraints = (resolution: Resolution) => {
+    const constraints: MediaTrackConstraints = {};
+
+    switch(resolution) {
+      case '240p':
+        constraints.width = { ideal: 426 };
+        constraints.height = { ideal: 240 };
+        break;
+      case '360p':
+        constraints.width = { ideal: 640 };
+        constraints.height = { ideal: 360 };
+        break;
+      case '480p':
+        constraints.width = { ideal: 854 };
+        constraints.height = { ideal: 480 };
+        break;
+      case '540p':
+        constraints.width = { ideal: 960 };
+        constraints.height = { ideal: 540 };
+        break;
+      case '720p':
+        constraints.width = { ideal: 1280 };
+        constraints.height = { ideal: 720 };
+        break;
+      case '1080p':
+        constraints.width = { ideal: 1920 };
+        constraints.height = { ideal: 1080 };
+        break;
+      default:
+        constraints.width = { ideal: 1280 };
+        constraints.height = { ideal: 720 };
+    }
+
+    return constraints;
+  };
+
   const startCamera = async () => {
     if (cameraActive && streamRef.current) return;
 
@@ -62,8 +104,10 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
 
       stopAllMediaTracks();
 
+      const videoConstraints = getResolutionConstraints(selectedResolution);
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: videoConstraints,
         audio: true,
       });
 
@@ -73,7 +117,35 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
       streamRef.current = stream;
       setCameraActive(true);
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const getMimeType = (): string => {
+        const mimeTypes = {
+          webm: 'video/webm;codecs=vp9,opus',
+          mp4: 'video/mp4',
+          avi: 'video/avi',
+          mov: 'video/mov',
+        };
+
+        const preferredType = mimeTypes[selectedFormat];
+
+        if (MediaRecorder.isTypeSupported(preferredType)) {
+          return preferredType;
+        }
+
+        for (const type of Object.values(mimeTypes)) {
+          if (MediaRecorder.isTypeSupported(type)) {
+            return type;
+          }
+        }
+
+        return '';
+      };
+
+      const options = {
+        mimeType: getMimeType(),
+        videoBitsPerSecond: 2500000,
+      };
+
+      const mediaRecorder = new MediaRecorder(stream, options.mimeType ? options : undefined);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
@@ -83,7 +155,8 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const mimeType = selectedFormat === 'webm' ? 'video/webm' : 'video/mp4';
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         setVideoBlob(blob);
         setShowPlayback(true);
       };
@@ -95,7 +168,8 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
 
   const startRecording = () => {
     chunksRef.current = [];
-    mediaRecorderRef.current?.start();
+
+    mediaRecorderRef.current?.start(1000);
     setRecording(true);
   };
 
@@ -118,7 +192,10 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
     try {
       const arrayBuffer = await videoBlob.arrayBuffer();
       const buffer = new Uint8Array(arrayBuffer);
-      const result = await window.ipcRenderer.invoke('save-recording', Array.from(buffer));
+      const result = await window.ipcRenderer.invoke('save-recording', {
+        buffer: Array.from(buffer),
+        format: selectedFormat,
+      });
 
       if (!result.success) {
         result.canceled
@@ -134,6 +211,19 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
     }
   };
 
+  const handleFormatChange = (format: VideoFormat) => {
+    setSelectedFormat(format);
+  };
+
+  const handleResolutionChange = (resolution: Resolution) => {
+    setSelectedResolution(resolution);
+
+    if (cameraActive) {
+      stopAllMediaTracks();
+      setCameraActive(false);
+    }
+  };
+
   return {
     recording,
     videoBlob,
@@ -141,6 +231,8 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
     isPlaying,
     videoUrl,
     cameraActive,
+    selectedFormat,
+    selectedResolution,
     videoRef,
     playbackRef,
     startRecording,
@@ -149,5 +241,7 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
     handleVideoEnded,
     discardRecording,
     saveRecording,
+    handleFormatChange,
+    handleResolutionChange,
   };
 };
