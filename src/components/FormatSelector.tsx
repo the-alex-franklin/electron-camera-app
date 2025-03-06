@@ -7,17 +7,16 @@ type FormatSelectorProps = {
   selectedFormat: VideoFormat;
 }
 
+const formats: VideoFormat[] = ['webm', 'mp4', 'avi', 'mov'];
+
+const formatLabels: Record<VideoFormat, string> = {
+  webm: 'WebM',
+  mp4: 'MP4',
+  avi: 'AVI',
+  mov: 'QuickTime (MOV)',
+};
 export const FormatSelector: FC<FormatSelectorProps> = ({ onSelect, selectedFormat }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  const formats: VideoFormat[] = ['webm', 'mp4', 'avi', 'mov'];
-
-  const formatLabels: Record<VideoFormat, string> = {
-    webm: 'WebM',
-    mp4: 'MP4',
-    avi: 'AVI',
-    mov: 'QuickTime (MOV)',
-  };
 
   return (
     <div className="relative">

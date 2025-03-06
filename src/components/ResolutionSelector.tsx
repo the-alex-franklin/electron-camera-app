@@ -13,29 +13,29 @@ type ResolutionSelectorProps = {
   selectedResolution: Resolution;
 }
 
+const resolutions: Resolution[] = [
+  '240p',
+  '360p',
+  '480p',
+  '540p',
+  '720p',
+  '1080p',
+];
+
+const resolutionLabels: Record<Resolution, string> = {
+  '240p': '240p (426×240)',
+  '360p': '360p (640×360)',
+  '480p': '480p (854×480)',
+  '540p': '540p (960×540)',
+  '720p': '720p (1280×720)',
+  '1080p': '1080p (1920×1080)',
+};
+
 export const ResolutionSelector: FC<ResolutionSelectorProps> = ({
   onSelect,
   selectedResolution,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  const resolutions: Resolution[] = [
-    '240p',
-    '360p',
-    '480p',
-    '540p',
-    '720p',
-    '1080p',
-  ];
-
-  const resolutionLabels: Record<Resolution, string> = {
-    '240p': '240p (426×240)',
-    '360p': '360p (640×360)',
-    '480p': '480p (854×480)',
-    '540p': '540p (960×540)',
-    '720p': '720p (1280×720)',
-    '1080p': '1080p (1920×1080)',
-  };
 
   return (
     <div className="relative">
