@@ -61,9 +61,23 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
 
   const stopAllMediaTracks = () => {
     if (!streamRef.current) return;
-
-    streamRef.current.getTracks().forEach(track => track.stop());
-    streamRef.current = null;
+    
+    try {
+      streamRef.current.getTracks().forEach(track => {
+        if (track.readyState === 'live') {
+          track.stop();
+        }
+      });
+      
+      // Clean up video element references
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      
+      streamRef.current = null;
+    } catch (err) {
+      console.error('Error stopping media tracks:', err);
+    }
   };
 
   const togglePlayback = () => {
@@ -115,12 +129,14 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
   };
 
   const startCamera = async () => {
+    // If camera is already active and we have a valid stream, return
     if (cameraActive && streamRef.current) return;
+    
+    // Make sure to clean up any previous stream first
+    stopAllMediaTracks();
 
     try {
       if (!videoRef.current) return;
-
-      stopAllMediaTracks();
 
       const videoConstraints = getResolutionConstraints(selectedResolution);
 
@@ -129,23 +145,51 @@ export const useCamera = ({ showToast }: UseCameraProps) => {
         audio: true,
       });
 
-      videoRef.current.srcObject = stream;
+      // Set the stream on the video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
 
+      // Create stable reference to video element for async operations
+      const videoElement = videoRef.current;
+      
+      // Wait for metadata to load before attempting to play
       const playVideo = async () => {
+        if (!videoElement) return;
+        
         try {
-          if (videoRef.current) {
-            await videoRef.current.play();
-          }
+          // Add event listener to handle loadedmetadata before playing
+          const playPromise = new Promise((resolve, reject) => {
+            const handleCanPlay = () => {
+              videoElement.removeEventListener('canplay', handleCanPlay);
+              videoElement.play()
+                .then(resolve)
+                .catch(reject);
+            };
+            
+            if (videoElement.readyState >= 3) { // HAVE_FUTURE_DATA or higher
+              videoElement.play()
+                .then(resolve)
+                .catch(reject);
+            } else {
+              videoElement.addEventListener('canplay', handleCanPlay);
+            }
+          });
+          
+          await playPromise;
         } catch (err) {
           console.error('Play failed:', err);
+          // If first attempt failed, try again with a delay
           setTimeout(() => {
-            videoRef.current?.play().catch(e => console.error('Final play attempt failed:', e));
+            if (videoElement && videoElement.paused) {
+              videoElement.play().catch(e => console.error('Final play attempt failed:', e));
+            }
           }, 1000);
         }
       };
-
-      // Delay play to ensure DOM is ready
-      setTimeout(playVideo, 300);
+      
+      // Delay play to ensure DOM is stable
+      setTimeout(playVideo, 500);
 
       streamRef.current = stream;
       setCameraActive(true);
